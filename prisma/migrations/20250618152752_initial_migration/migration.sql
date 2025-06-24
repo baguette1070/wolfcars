@@ -1,0 +1,8 @@
+-- CreateTable
+CREATE TABLE "Clients" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "nom" TEXT NOT NULL,
+    "prenom" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "creerA" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
