@@ -202,8 +202,11 @@ export default function SignUp() {
                   const data = await response.json();
 
                   if (response.ok) {
-                    toast.success("Compte créé avec succès !.");
-                    router.push("/auth/sign");
+                    toast.success(
+                      "Compte créé avec succès ! Veuillez vérifier votre email pour activer votre compte.",
+                      { duration: 6000 }
+                    );
+                    router.push("/auth/signin");
                   } else {
                     setErrorMessage(
                       data.error || "Erreur lors de la création du compte"

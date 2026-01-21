@@ -21,17 +21,6 @@ interface HeaderClientProps {
 }
 
 export function HeaderClient({ user }: HeaderClientProps) {
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast.success("Déconnexion réussie");
-    } catch {
-      toast.error("Erreur lors de la déconnexion");
-    }
-  };
-
-  console.log(user);
-
   return (
     <header className="sticky border-b p-4 top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -111,7 +100,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "text-sm font-medium cursor-pointer text-blue-600 hover:text-blue-700"
+                        "text-sm font-medium cursor-pointer text-blue-600 hover:text-blue-700",
                       )}
                     >
                       Voir réservations
@@ -122,10 +111,13 @@ export function HeaderClient({ user }: HeaderClientProps) {
                   <span className="text-sm font-medium">{user.email}</span>
                 </div>
                 <Button
-                  onClick={handleSignOut}
+                  onClick={async () => {
+                    await signOut();
+                    toast.success("Déconnexion réussie");
+                  }}
                   variant="outline"
                   className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary cursor-pointer"
+                    "text-sm font-medium transition-colors hover:text-primary cursor-pointer",
                   )}
                 >
                   Se déconnecter
@@ -137,7 +129,7 @@ export function HeaderClient({ user }: HeaderClientProps) {
                   <Button
                     variant="outline"
                     className={cn(
-                      "text-sm font-medium transition-colors hover:text-primary cursor-pointer"
+                      "text-sm font-medium transition-colors hover:text-primary cursor-pointer",
                     )}
                   >
                     Connexion

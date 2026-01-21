@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -93,15 +93,20 @@ model Car {
 }
 
 model AppointmentSlot {
-  id         String   @id @default(uuid())
-  carId      String
-  car        Car      @relation(fields: [carId], references: [id])
-  start      DateTime
-  end        DateTime
-  isBooked   Boolean  @default(false)
-  bookedBy   String? 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String   @id @default(uuid())
+  carId             String
+  car               Car      @relation(fields: [carId], references: [id])
+  start             DateTime
+  end               DateTime
+  isBooked          Boolean  @default(false)
+  bookedBy          String? 
+  paymentStatus     String   @default("pending_deposit") // pending_deposit, deposit_paid, fully_paid, cancelled
+  depositPaid       Boolean  @default(false)
+  depositAmount     Float    @default(0.5) // En euros
+  remainingAmount   Float?   // Montant restant à payer sur place
+  stripeSessionId   String?  // ID de la session Stripe pour l'acompte
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model PasswordResetToken {

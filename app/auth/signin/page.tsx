@@ -23,8 +23,42 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [showResendButton, setShowResendButton] = useState(false);
   const router = useRouter();
   const toastId = useRef<string | number | undefined>(undefined);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error("Veuillez entrer votre email");
+      return;
+    }
+
+    setResendingEmail(true);
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          "Email de vérification renvoyé ! Consultez votre boîte de réception.",
+          { duration: 6000 },
+        );
+        setShowResendButton(false);
+      } else {
+        toast.error(data.error || "Erreur lors de l'envoi de l'email");
+      }
+    } catch (error) {
+      toast.error("Erreur lors de l'envoi de l'email");
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -99,9 +133,24 @@ export default function SignIn() {
                     onError: (ctx) => {
                       setLoading(false);
                       if (toastId.current) toast.dismiss(toastId.current);
-                      toast.error(ctx?.error?.message || "Erreur de connexion");
+                      const errorMessage =
+                        ctx?.error?.message || "Erreur de connexion";
+                      console.error(ctx?.error?.message);
+
+                      // Message spécifique si l'email n'est pas vérifié
+                      if (
+                        errorMessage.toLowerCase().includes("email") ||
+                        errorMessage.toLowerCase().includes("verify") ||
+                        errorMessage.toLowerCase().includes("not verified")
+                      ) {
+                        toast.error("Compte crée avec succès", {
+                          duration: 6000,
+                        });
+                      } else {
+                        toast.error(errorMessage);
+                      }
                     },
-                  }
+                  },
                 );
               }}
             >
@@ -115,7 +164,7 @@ export default function SignIn() {
             <div
               className={cn(
                 "w-full gap-2 flex items-center",
-                "justify-between flex-col"
+                "justify-between flex-col",
               )}
             >
               <Button
@@ -126,18 +175,14 @@ export default function SignIn() {
                   await signIn.social(
                     {
                       provider: "google",
-                      callbackURL: "/auth",
+                      callbackURL: "/",
                     },
                     {
                       onRequest: () => {
                         toast.loading("Connexion en cours...");
                         setLoading(true);
                       },
-                      onResponse: () => {
-                        toast.success("Connexion réussie");
-                        setLoading(false);
-                      },
-                    }
+                    },
                   );
                 }}
               >
@@ -165,42 +210,6 @@ export default function SignIn() {
                   ></path>
                 </svg>
                 Se connecter avec Google
-              </Button>
-              <Button
-                variant="outline"
-                className={cn("w-full gap-2")}
-                disabled={loading}
-                onClick={async () => {
-                  await signIn.social(
-                    {
-                      provider: "apple",
-                      callbackURL: "/auth",
-                    },
-                    {
-                      onRequest: () => {
-                        toast.loading("Connexion en cours...");
-                        setLoading(true);
-                      },
-                      onResponse: () => {
-                        toast.success("Connexion réussie");
-                        setLoading(false);
-                      },
-                    }
-                  );
-                }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="1em"
-                  height="1em"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M17.05 20.28c-.98.95-2.05.8-3.08.35c-1.09-.46-2.09-.48-3.24 0c-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8c1.18-.24 2.31-.93 3.57-.84c1.51.12 2.65.72 3.4 1.8c-3.12 1.87-2.38 5.98.48 7.13c-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25c.29 2.58-2.34 4.5-3.74 4.25"
-                  ></path>
-                </svg>
-                Se connecter avec Apple
               </Button>
             </div>
           </div>

@@ -14,11 +14,11 @@ interface VerificationEmailData {
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "sqlite",
+    provider: "postgresql",
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: process.env.NODE_ENV === "production",
     async sendResetPassword(data) {
       await sendMail({
         to: `${data.user.email}`,
@@ -26,33 +26,53 @@ export const auth = betterAuth({
         html: `<p><strong>Réinitialiser votre mot de passe en cliquant sur le lien ci-dessous</strong> :<br /> <a href="${data.url}">${data.url}</a></p>`,
       });
     },
+
     async sendVerificationEmail(data: VerificationEmailData) {
-      await sendMail({
-        to: `${data.user.email}`,
-        subject: "Vérifiez votre adresse email",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Vérifiez votre adresse email</h2>
-            <p>Bonjour ${data.user.name},</p>
-            <p>Merci de vous être inscrit sur notre plateforme de location de voitures.</p>
-            <p>Pour finaliser votre inscription et accéder à toutes nos fonctionnalités, veuillez vérifier votre adresse email en cliquant sur le bouton ci-dessous :</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${data.url}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                Vérifier mon email
-              </a>
+      // En développement, afficher le lien dans la console
+      if (process.env.NODE_ENV === "development") {
+        console.log("\n" + "=".repeat(80));
+        console.log("📧 EMAIL DE VÉRIFICATION");
+        console.log("=".repeat(80));
+        console.log(`Pour: ${data.user.email}`);
+        console.log(`Nom: ${data.user.name}`);
+        console.log(`\n🔗 Lien de vérification:\n${data.url}\n`);
+        console.log("=".repeat(80) + "\n");
+      }
+
+      try {
+        await sendMail({
+          to: `${data.user.email}`,
+          subject: "Vérifiez votre adresse email",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Vérifiez votre adresse email</h2>
+              <p>Bonjour ${data.user.name},</p>
+              <p>Merci de vous être inscrit sur notre plateforme de location de voitures.</p>
+              <p>Pour finaliser votre inscription et accéder à toutes nos fonctionnalités, veuillez vérifier votre adresse email en cliquant sur le bouton ci-dessous :</p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${data.url}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Vérifier mon email
+                </a>
+              </div>
+              
+              <p>Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien dans votre navigateur :</p>
+              <p style="word-break: break-all; color: #6b7280;">${data.url}</p>
+              
+              <p>Ce lien expirera dans 24 heures.</p>
+              
+              <p>Cordialement,<br>
+              L&apos;équipe de location de voitures</p>
             </div>
-            
-            <p>Si le bouton ne fonctionne pas, vous pouvez copier et coller ce lien dans votre navigateur :</p>
-            <p style="word-break: break-all; color: #6b7280;">${data.url}</p>
-            
-            <p>Ce lien expirera dans 24 heures.</p>
-            
-            <p>Cordialement,<br>
-            L&apos;équipe de location de voitures</p>
-          </div>
-        `,
-      });
+          `,
+        });
+      } catch (error) {
+        console.error("❌ Erreur lors de l'envoi de l'email:", error);
+        // En développement, on continue même si l'email échoue car le lien est dans la console
+        if (process.env.NODE_ENV !== "development") {
+          throw error;
+        }
+      }
     },
   },
   socialProviders: {

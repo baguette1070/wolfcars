@@ -15,7 +15,7 @@ export async function DELETE(
     }
 
     // Vérifier si l'utilisateur est admin
-    if (session.user.email !== "lamrininawfal11@gmail.com") {
+    if (session.user.email !== process.env.MON_EMAIL) {
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
@@ -48,13 +48,9 @@ export async function DELETE(
       );
     }
 
-    // Supprimer la réservation
-    await prisma.appointmentSlot.update({
+    // Supprimer complètement la réservation pour libérer la date
+    await prisma.appointmentSlot.delete({
       where: { id: reservationId },
-      data: {
-        isBooked: false,
-        bookedBy: null,
-      },
     });
 
     // Envoyer l'email de notification

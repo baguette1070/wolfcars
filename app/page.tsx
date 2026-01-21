@@ -18,8 +18,7 @@ export default async function Home() {
               {user ? `Connecté en tant que : ${user.email}` : ""}
             </p>
             <p className="text-base text-gray-500">
-              Ici, vous pourrez gérer vos voitures, vos réservations et vos
-              clients.
+              Ici, vous pourrez gérer vos voitures, vos réservations.
             </p>
           </div>
           <Link href={"/dashboard/cars"}>

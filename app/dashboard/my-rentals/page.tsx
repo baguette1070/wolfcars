@@ -26,10 +26,13 @@ interface Rental {
     description: string | null;
     image: string | null;
   };
-  startTime: string;
-  endTime: string;
-  status: "upcoming" | "active" | "completed";
-  totalHours: number;
+  start: string;
+  end: string;
+  paymentStatus: string;
+  depositPaid: boolean;
+  depositAmount: number;
+  remainingAmount: number | null;
+  createdAt: string;
 }
 
 export default function MyRentalsPage() {
@@ -61,6 +64,39 @@ export default function MyRentalsPage() {
     }
   };
 
+  const getPaymentStatusBadge = (paymentStatus: string) => {
+    switch (paymentStatus) {
+      case "pending_deposit":
+        return <Badge variant="destructive">Acompte en attente</Badge>;
+      case "deposit_paid":
+        return <Badge variant="secondary">Acompte payé</Badge>;
+      case "fully_paid":
+        return (
+          <Badge variant="default" className="bg-green-500">
+            Entièrement payé
+          </Badge>
+        );
+      case "cancelled":
+        return <Badge variant="outline">Annulé</Badge>;
+      default:
+        return <Badge variant="outline">{paymentStatus}</Badge>;
+    }
+  };
+
+  const getRentalStatus = (start: string, paymentStatus: string) => {
+    const now = new Date();
+    const startDate = new Date(start);
+
+    if (paymentStatus === "cancelled") return "cancelled";
+    if (startDate > now) return "upcoming";
+    if (
+      startDate <= now &&
+      new Date(startDate.getTime() + 24 * 60 * 60 * 1000) > now
+    )
+      return "active";
+    return "completed";
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "upcoming":
@@ -73,6 +109,8 @@ export default function MyRentalsPage() {
         );
       case "completed":
         return <Badge variant="outline">Terminée</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive">Annulée</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -86,12 +124,15 @@ export default function MyRentalsPage() {
         return "border-green-200 bg-green-50";
       case "completed":
         return "border-gray-200 bg-gray-50";
+      case "cancelled":
+        return "border-red-200 bg-red-50";
       default:
         return "border-gray-200 bg-gray-50";
     }
   };
 
-  const isCancellable = (startTime: string) => {
+  const isCancellable = (startTime: string, paymentStatus: string) => {
+    if (paymentStatus === "cancelled") return false;
     const departure = new Date(startTime);
     const cancelLimit = setHours(setMinutes(subDays(departure, 1), 0), 17); // veille à 17h00
     return new Date() < cancelLimit;
@@ -105,7 +146,7 @@ export default function MyRentalsPage() {
         `/api/cars/${modalRental.carId}/reservation/${modalRental.id}`,
         {
           method: "DELETE",
-        }
+        },
       );
       if (!response.ok) {
         const error = await response.json();
@@ -116,7 +157,7 @@ export default function MyRentalsPage() {
       fetchRentals();
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Erreur lors de l'annulation"
+        error instanceof Error ? error.message : "Erreur lors de l'annulation",
       );
     } finally {
       setIsCancelling(false);
@@ -168,80 +209,100 @@ export default function MyRentalsPage() {
         </Card>
       ) : (
         <div className="grid gap-6">
-          {rentals.map((rental) => (
-            <Card
-              key={rental.id}
-              className={`${getStatusColor(rental.status)}`}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <CardTitle className="text-xl">
-                        {rental.car.name}
-                      </CardTitle>
-                      {rental.car.description && (
-                        <p className="text-muted-foreground text-sm mt-1">
-                          {rental.car.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {getStatusBadge(rental.status)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Départ :</span>
-                      <span>
-                        {format(
-                          new Date(rental.startTime),
-                          "dd MMMM yyyy 'à' HH:mm",
-                          { locale: fr }
+          {rentals.map((rental) => {
+            const rentalStatus = getRentalStatus(
+              rental.start,
+              rental.paymentStatus,
+            );
+            return (
+              <Card
+                key={rental.id}
+                className={`${getStatusColor(rentalStatus)}`}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <CardTitle className="text-xl">
+                          {rental.car.name}
+                        </CardTitle>
+                        {rental.car.description && (
+                          <p className="text-muted-foreground text-sm mt-1">
+                            {rental.car.description}
+                          </p>
                         )}
-                      </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Retour :</span>
-                      <span>
-                        {format(
-                          new Date(rental.endTime),
-                          "dd MMMM yyyy 'à' HH:mm",
-                          { locale: fr }
+                    <div className="flex flex-col gap-2">
+                      {getStatusBadge(rentalStatus)}
+                      {getPaymentStatusBadge(rental.paymentStatus)}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Départ :</span>
+                        <span>
+                          {format(
+                            new Date(rental.start),
+                            "dd MMMM yyyy 'à' HH:mm",
+                            { locale: fr },
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Retour :</span>
+                        <span>
+                          {format(
+                            new Date(rental.end),
+                            "dd MMMM yyyy 'à' HH:mm",
+                            { locale: fr },
+                          )}
+                        </span>
+                      </div>
+                      {isCancellable(rental.start, rental.paymentStatus) &&
+                        rentalStatus === "upcoming" && (
+                          <Button
+                            variant="destructive"
+                            className="mt-2"
+                            onClick={() => setModalRental(rental)}
+                          >
+                            Annuler la location
+                          </Button>
                         )}
-                      </span>
                     </div>
-                    {isCancellable(rental.startTime) &&
-                      rental.status === "upcoming" && (
-                        <Button
-                          variant="destructive"
-                          className="mt-2"
-                          onClick={() => setModalRental(rental)}
-                        >
-                          Annuler la location
-                        </Button>
-                      )}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Durée :</span>
+                        <span>24 heures</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Lieu :</span>
+                        <span>Notre agence</span>
+                      </div>
+                      {rental.paymentStatus === "deposit_paid" &&
+                        rental.remainingAmount && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium text-green-600">
+                              À payer sur place :
+                            </span>
+                            <span className="font-semibold text-green-600">
+                              {rental.remainingAmount} €
+                            </span>
+                          </div>
+                        )}
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Durée :</span>
-                      <span>{rental.totalHours} heures</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">Lieu :</span>
-                      <span>Notre agence</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -269,9 +330,9 @@ export default function MyRentalsPage() {
                     Départ :{" "}
                     {modalRental &&
                       format(
-                        new Date(modalRental.startTime),
+                        new Date(modalRental.start),
                         "dd MMMM yyyy 'à' HH:mm",
-                        { locale: fr }
+                        { locale: fr },
                       )}
                   </span>
                 </div>

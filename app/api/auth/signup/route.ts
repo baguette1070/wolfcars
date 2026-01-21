@@ -1,6 +1,5 @@
-import bcrypt from "bcryptjs";
+import { auth } from "@/src/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../src/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,60 +12,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier si l'email existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    // Utiliser Better Auth pour créer le compte
+    // Cela gérera automatiquement le hashing du mot de passe et l'envoi de l'email de vérification
+    const result = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name,
+        callbackURL: "/auth/signin",
+      },
     });
 
-    if (existingUser) {
+    if (!result) {
       return NextResponse.json(
-        { error: "Cet email est déjà utilisé" },
-        { status: 400 }
+        { error: "Erreur lors de la création du compte" },
+        { status: 500 }
       );
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Créer l'utilisateur
-    const user = await prisma.user.create({
-      data: {
-        id: `user-${Date.now()}`,
-        name,
-        email,
-        phone: phone || null,
-        image: image || null,
-        emailVerified: false,
-        role: "USER",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    // Créer le compte avec le mot de passe hashé
-    await prisma.account.create({
-      data: {
-        id: `account-${Date.now()}`,
-        accountId: user.id,
-        providerId: "email-and-password",
-        userId: user.id,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
+    // Mettre à jour le téléphone et l'image si fournis (Better Auth ne les gère pas par défaut)
+    if ((phone || image) && result.user) {
+      const { prisma } = await import("../../../../src/lib/prisma");
+      await prisma.user.update({
+        where: { id: result.user.id },
+        data: {
+          ...(phone && { phone }),
+          ...(image && { image }),
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Compte créé avec succès",
+      message:
+        "Compte créé avec succès. Veuillez vérifier votre email pour activer votre compte.",
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
       },
     });
   } catch (error) {
     console.error("Erreur lors de la création du compte:", error);
+    
+    // Gérer les erreurs spécifiques
+    if (error instanceof Error) {
+      if (error.message.includes("already exists") || error.message.includes("unique")) {
+        return NextResponse.json(
+          { error: "Cet email est déjà utilisé" },
+          { status: 400 }
+        );
+      }
+    }
+
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
       { status: 500 }

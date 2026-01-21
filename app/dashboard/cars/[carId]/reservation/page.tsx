@@ -23,7 +23,7 @@ import { useSession } from "@/src/lib/auth-client";
 import { addMonths, format, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 // Fonction pour déterminer le prix selon la voiture
@@ -64,9 +64,6 @@ export default function CarReservationPage({
 
   const { data: session } = useSession();
 
-  // Obtenir le prix de la voiture
-  const carPrice = getCarPrice(carId);
-
   // Vérifier si l'utilisateur a un numéro de téléphone
   useEffect(() => {
     const checkUserPhone = async () => {
@@ -90,25 +87,28 @@ export default function CarReservationPage({
   }, [session]);
 
   // Fonction pour récupérer les jours disponibles pour le mois actuel
-  const fetchAvailableDays = async (month: Date) => {
-    try {
-      const monthString = format(month, "yyyy-MM");
-      const response = await fetch(
-        `/api/cars/${carId}/available-days?month=${monthString}`
-      );
+  const fetchAvailableDays = useCallback(
+    async (month: Date) => {
+      try {
+        const monthString = format(month, "yyyy-MM");
+        const response = await fetch(
+          `/api/cars/${carId}/available-days?month=${monthString}`
+        );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch available days");
+        if (!response.ok) {
+          throw new Error("Failed to fetch available days");
+        }
+
+        const data = await response.json();
+        setAvailableDays(data.availableDays);
+      } catch (error) {
+        console.error("Error fetching available days:", error);
+        toast.error("Failed to fetch available days");
+        setAvailableDays([]);
       }
-
-      const data = await response.json();
-      setAvailableDays(data.availableDays);
-    } catch (error) {
-      console.error("Error fetching available days:", error);
-      toast.error("Failed to fetch available days");
-      setAvailableDays([]);
-    }
-  };
+    },
+    [carId]
+  );
 
   // Charger les jours disponibles au montage et quand le mois change
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function CarReservationPage({
       }
     };
     fetchCarDetails();
-  }, [currentMonth, carId]);
+  }, [currentMonth, carId, fetchAvailableDays]);
 
   // Vérifier la disponibilité quand une date est sélectionnée
   const handleDateSelect = async (date: Date | undefined) => {
@@ -173,7 +173,7 @@ export default function CarReservationPage({
     if (!selectedDate) return;
 
     try {
-      const response = await fetch("/api/cars/reservation", {
+      const response = await fetch("/api/payments/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -185,13 +185,13 @@ export default function CarReservationPage({
       if (!response.ok) {
         const error = await response.json();
         throw new Error(
-          error.message || "Vous avez déjà réservé une voiture pour cette date"
+          error.message || "Erreur lors de la création du paiement"
         );
       }
 
-      toast.success("Réservation confirmée ! Le paiement se fera sur place.");
-      setIsModalOpen(false);
-      router.push("/dashboard/my-rentals");
+      const data = await response.json();
+
+      window.location.href = data.url;
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -383,9 +383,11 @@ export default function CarReservationPage({
               <DialogHeader>
                 <DialogTitle>Confirmer votre location</DialogTitle>
                 <DialogDescription>
-                  Votre réservation sera confirmée immédiatement. Le paiement de{" "}
-                  {carPrice.toLocaleString("fr-FR")} € se fera sur place lors de
-                  la récupération du véhicule.
+                  Votre réservation sera confirmée après le paiement de
+                  l&apos;acompte. Vous devez payer 0,50 euros d&apos;acompte dès
+                  maintenant via Stripe. Le montant restant de{" "}
+                  {getCarPrice(carId) - 0.5} € sera à payer sur place lors de la
+                  récupération du véhicule.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -400,9 +402,13 @@ export default function CarReservationPage({
                   </span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
-                  <span className="font-medium">Montant :</span>
+                  <span className="font-medium">Acompte :</span>
+                  <span className="font-semibold">0,50 €</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
+                  <span className="font-medium">Montant restant :</span>
                   <span className="font-semibold">
-                    {carPrice.toLocaleString("fr-FR")} €
+                    {getCarPrice(carId) - 0.5} €
                   </span>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
@@ -418,7 +424,7 @@ export default function CarReservationPage({
                   Annuler
                 </Button>
                 <Button onClick={handleConfirmReservation}>
-                  Confirmer la réservation
+                  Payer l&apos;acompte
                 </Button>
               </DialogFooter>
             </DialogContent>
