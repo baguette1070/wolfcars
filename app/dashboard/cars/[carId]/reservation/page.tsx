@@ -22,7 +22,6 @@ import { ScrollAnimation } from "@/src/components/ui/scroll-animation";
 import { useSession } from "@/src/lib/auth-client";
 import { addMonths, format, subMonths } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -40,12 +39,7 @@ const getCarPrice = (carId: string): number => {
   return 250;
 };
 
-export default function CarReservationPage({
-  params,
-}: {
-  params: { carId: string };
-}) {
-  const { carId } = params;
+function CarReservationPageWrapper({ carId }: { carId: string }) {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [carName, setCarName] = useState<string>("");
   const [availableDays, setAvailableDays] = useState<string[]>([]);
@@ -60,7 +54,6 @@ export default function CarReservationPage({
     returnTime: string;
     message: string;
   } | null>(null);
-  const router = useRouter();
 
   const { data: session } = useSession();
 
@@ -92,7 +85,7 @@ export default function CarReservationPage({
       try {
         const monthString = format(month, "yyyy-MM");
         const response = await fetch(
-          `/api/cars/${carId}/available-days?month=${monthString}`
+          `/api/cars/${carId}/available-days?month=${monthString}`,
         );
 
         if (!response.ok) {
@@ -107,7 +100,7 @@ export default function CarReservationPage({
         setAvailableDays([]);
       }
     },
-    [carId]
+    [carId],
   );
 
   // Charger les jours disponibles au montage et quand le mois change
@@ -139,7 +132,7 @@ export default function CarReservationPage({
 
     try {
       const response = await fetch(
-        `/api/cars/${carId}/reservation?date=${format(date, "yyyy-MM-dd")}`
+        `/api/cars/${carId}/reservation?date=${format(date, "yyyy-MM-dd")}`,
       );
 
       if (!response.ok) {
@@ -185,7 +178,7 @@ export default function CarReservationPage({
       if (!response.ok) {
         const error = await response.json();
         throw new Error(
-          error.message || "Erreur lors de la création du paiement"
+          error.message || "Erreur lors de la création du paiement",
         );
       }
 
@@ -196,7 +189,7 @@ export default function CarReservationPage({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Erreur lors de la création de la réservation"
+          : "Erreur lors de la création de la réservation",
       );
       setIsModalOpen(false);
     }
@@ -223,7 +216,7 @@ export default function CarReservationPage({
       } else {
         const error = await response.json();
         toast.error(
-          error.error || "Erreur lors de l'ajout du numéro de téléphone"
+          error.error || "Erreur lors de l'ajout du numéro de téléphone",
         );
       }
     } catch {
@@ -327,7 +320,7 @@ export default function CarReservationPage({
                               {format(
                                 new Date(availabilityInfo.departureTime),
                                 "dd/MM/yyyy à HH:mm",
-                                { locale: fr }
+                                { locale: fr },
                               )}
                             </span>
                           </div>
@@ -338,7 +331,7 @@ export default function CarReservationPage({
                               {format(
                                 new Date(availabilityInfo.returnTime),
                                 "dd/MM/yyyy à HH:mm",
-                                { locale: fr }
+                                { locale: fr },
                               )}
                             </span>
                           </div>
@@ -480,4 +473,13 @@ export default function CarReservationPage({
       )}
     </>
   );
+}
+
+export default async function CarReservationPage({
+  params,
+}: {
+  params: Promise<{ carId: string }>;
+}) {
+  const { carId } = await params;
+  return <CarReservationPageWrapper carId={carId} />;
 }

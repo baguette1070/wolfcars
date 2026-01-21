@@ -3,11 +3,12 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   req: Request,
-  { params }: { params: { carId: string } }
+  { params }: { params: Promise<{ carId: string }> },
 ) {
+  const resolvedParams = await params;
   try {
     const car = await prisma.car.findUnique({
-      where: { id: params.carId },
+      where: { id: resolvedParams.carId },
       select: {
         name: true,
       },
@@ -19,10 +20,13 @@ export async function GET(
 
     return NextResponse.json(car);
   } catch (error) {
-    console.error(`Error fetching car details for ${params.carId}:`, error);
+    console.error(
+      `Error fetching car details for ${resolvedParams.carId}:`,
+      error,
+    );
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

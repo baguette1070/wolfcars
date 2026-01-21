@@ -4,9 +4,10 @@ import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { authClient } from "@/src/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { toast } from "sonner";
 
-export default function ForgetPassword() {
+function ForgetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const router = useRouter();
@@ -35,10 +36,10 @@ export default function ForgetPassword() {
                 onError: (ctx) => {
                   toast.dismiss(toastId);
                   toast.error(
-                    ctx.error.message || "Erreur lors de l'envoi du mail"
+                    ctx.error.message || "Erreur lors de l'envoi du mail",
                   );
                 },
-              }
+              },
             );
           }}
           className="flex gap-2"
@@ -79,7 +80,7 @@ export default function ForgetPassword() {
                 toast.success("Mot de passe réinitialisé avec succès");
                 router.push("/auth/signin");
               },
-            }
+            },
           );
         }}
         className="flex gap-2"
@@ -95,5 +96,22 @@ export default function ForgetPassword() {
         <Button type="submit">Réinitialiser mot de passe</Button>
       </form>
     </div>
+  );
+}
+
+export default function ForgetPassword() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-md mx-auto w-full p-4">
+          <h1 className="text-2xl font-bold mb-4">
+            Réinitialiser mot de passe
+          </h1>
+          <p className="text-sm text-gray-500 mb-4">Chargement...</p>
+        </div>
+      }
+    >
+      <ForgetPasswordContent />
+    </Suspense>
   );
 }

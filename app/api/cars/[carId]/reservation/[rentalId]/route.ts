@@ -8,25 +8,26 @@ const prisma = new PrismaClient();
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { carId: string; rentalId: string } }
+  { params }: { params: Promise<{ carId: string; rentalId: string }> },
 ) {
+  const resolvedParams = await params;
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Récupérer la location
     const rental = await prisma.appointmentSlot.findUnique({
-      where: { id: params.rentalId },
+      where: { id: resolvedParams.rentalId },
     });
     if (!rental) {
       return NextResponse.json(
         { error: "Location introuvable" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     if (rental.bookedBy !== session.user.id) {
@@ -40,19 +41,21 @@ export async function DELETE(
     if (isAfter(now, cancelLimit)) {
       return NextResponse.json(
         { error: "La période d'annulation est dépassée" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Annuler la location (ici on supprime, on pourrait aussi mettre un statut "cancelled")
-    await prisma.appointmentSlot.delete({ where: { id: params.rentalId } });
+    await prisma.appointmentSlot.delete({
+      where: { id: resolvedParams.rentalId },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erreur lors de l'annulation:", error);
     return NextResponse.json(
       { error: "Erreur lors de l'annulation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

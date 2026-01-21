@@ -10,15 +10,16 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { carId: string } }
+  { params }: { params: Promise<{ carId: string }> },
 ) {
+  const resolvedParams = await params;
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
 
   if (!date) {
     return NextResponse.json(
       { error: "Date parameter is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -31,7 +32,7 @@ export async function GET(
     // Vérifier si la voiture est disponible pour cette période
     const existingRental = await prisma.appointmentSlot.findFirst({
       where: {
-        carId: params.carId,
+        carId: resolvedParams.carId,
         OR: [
           // Location qui commence pendant notre période
           {
@@ -70,15 +71,16 @@ export async function GET(
     console.error("Error checking availability:", error);
     return NextResponse.json(
       { error: "Failed to check availability" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: { carId: string } }
+  { params }: { params: Promise<{ carId: string }> },
 ) {
+  const resolvedParams = await params;
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -87,7 +89,7 @@ export async function POST(
     if (!session?.user) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -97,7 +99,7 @@ export async function POST(
     if (!startDate) {
       return NextResponse.json(
         { error: "Start date is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,7 +109,7 @@ export async function POST(
 
     const existingRental = await prisma.appointmentSlot.findFirst({
       where: {
-        carId: params.carId,
+        carId: resolvedParams.carId,
         OR: [
           {
             start: {
@@ -132,13 +134,13 @@ export async function POST(
     if (existingRental) {
       return NextResponse.json(
         { error: "Voiture déjà louée pour cette période" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const rental = await prisma.appointmentSlot.create({
       data: {
-        carId: params.carId,
+        carId: resolvedParams.carId,
         start: departureTime,
         end: returnTime,
         isBooked: true,
@@ -148,7 +150,7 @@ export async function POST(
 
     // Récupérer les infos de la voiture
     const car = await prisma.car.findUnique({
-      where: { id: params.carId },
+      where: { id: resolvedParams.carId },
     });
 
     // Envoyer un mail de confirmation à l'utilisateur
@@ -178,7 +180,7 @@ export async function POST(
     console.error("Error creating rental:", error);
     return NextResponse.json(
       { error: "Failed to create rental" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

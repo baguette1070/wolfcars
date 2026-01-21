@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: Request,
-  { params }: { params: { carId: string } }
+  { params }: { params: Promise<{ carId: string }> },
 ) {
   const { searchParams } = new URL(request.url);
   const month = searchParams.get("month"); // Format: "2025-06"
@@ -20,11 +20,13 @@ export async function GET(
   if (!month) {
     return NextResponse.json(
       { error: "Month parameter is required (format: YYYY-MM)" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
+    const resolvedParams = await params;
+
     // Parse le mois demandé
     const [year, monthNum] = month.split("-").map(Number);
     const startDate = startOfMonth(new Date(year, monthNum - 1));
@@ -39,7 +41,7 @@ export async function GET(
     // Récupérer toutes les locations existantes pour cette voiture dans le mois
     const existingRentals = await prisma.appointmentSlot.findMany({
       where: {
-        carId: params.carId,
+        carId: resolvedParams.carId,
         start: {
           gte: startDate,
           lte: endDate,
@@ -90,7 +92,7 @@ export async function GET(
     console.error("Error fetching available days:", error);
     return NextResponse.json(
       { error: "Failed to fetch available days" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

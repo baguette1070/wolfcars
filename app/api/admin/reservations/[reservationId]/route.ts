@@ -5,7 +5,7 @@ import { prisma } from "../../../../../src/lib/prisma";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { reservationId: string } }
+  { params }: { params: Promise<{ reservationId: string }> },
 ) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -19,7 +19,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
     }
 
-    const { reservationId } = params;
+    const { reservationId } = await params;
     const { userEmail, carName, startDate } = await request.json();
 
     // Vérifier si la réservation existe
@@ -37,14 +37,14 @@ export async function DELETE(
     if (!reservation) {
       return NextResponse.json(
         { error: "Réservation non trouvée" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (!reservation.isBooked) {
       return NextResponse.json(
         { error: "Cette réservation n'est pas active" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -90,7 +90,7 @@ export async function DELETE(
     console.error("Erreur lors de la suppression de la réservation:", error);
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -10,24 +10,18 @@ export async function POST(req: Request) {
     }
 
     // Utiliser better-auth pour envoyer le magic link
-    const result = await auth.emailAndPassword.sendMagicLink({
-      email,
-      callbackURL: "/dashboard",
+    await auth.api.sendVerificationEmail({
+      body: {
+        email,
+      },
     });
-
-    if (result.error) {
-      return NextResponse.json(
-        { error: result.error.message },
-        { status: 400 }
-      );
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error sending magic link:", error);
     return NextResponse.json(
       { error: "Failed to send magic link" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
