@@ -38,6 +38,8 @@ export async function POST(req: Request) {
       where: { id: carId },
     });
 
+    console.log("Car : ", car);
+
     if (!car) {
       return NextResponse.json({ error: "Car not found" }, { status: 404 });
     }
