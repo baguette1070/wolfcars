@@ -175,14 +175,12 @@ function CarReservationPageWrapper({ carId }: { carId: string }) {
         }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const error = await response.json();
         throw new Error(
-          error.message || "Erreur lors de la création du paiement",
+          data.error?.message || "Erreur lors de la création du paiement",
         );
       }
-
-      const data = await response.json();
 
       window.location.href = data.url;
     } catch (error) {
