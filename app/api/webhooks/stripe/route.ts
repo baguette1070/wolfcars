@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_PROD_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 });
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
       { error: `Webhook Error: ${errorMessage}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -85,12 +85,12 @@ export async function POST(req: Request) {
                   <li style="margin-bottom: 10px;"><strong>Date de départ :</strong> ${format(
                     departureTime,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Date de retour :</strong> ${format(
                     returnTime,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Montant payé :</strong> ${carPrice.toLocaleString("fr-FR")} €</li>
                 </ul>
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
       console.error("Error handling checkout session:", error);
       return NextResponse.json(
         { error: "Error processing reservation" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   }

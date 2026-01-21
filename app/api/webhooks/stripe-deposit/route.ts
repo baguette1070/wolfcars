@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_PROD_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 });
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     console.error("❌ Webhook signature verification failed:", errorMessage);
     return NextResponse.json(
       { error: `Webhook Error: ${errorMessage}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
         console.error("❌ Date already reserved after payment");
         return NextResponse.json(
           { error: "Date already reserved" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -156,12 +156,12 @@ export async function POST(req: Request) {
                   <li style="margin-bottom: 10px;"><strong>Date de départ :</strong> ${format(
                     newReservation.start,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Date de retour :</strong> ${format(
                     newReservation.end,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Acompte payé :</strong> 0,50 €</li>
                   <li style="margin-bottom: 10px;"><strong>Montant restant à payer sur place :</strong> ${remainingAmount} €</li>
@@ -189,10 +189,10 @@ export async function POST(req: Request) {
           console.log("📧 Email content would be:");
           console.log(`To: ${user.email}`);
           console.log(
-            `Subject: Acompte confirmé - Location ${newReservation.car.name}`
+            `Subject: Acompte confirmé - Location ${newReservation.car.name}`,
           );
           console.log(
-            `Body: Acompte de 0,50€ confirmé pour ${newReservation.car.name}`
+            `Body: Acompte de 0,50€ confirmé pour ${newReservation.car.name}`,
           );
         }
       } else {
@@ -204,7 +204,7 @@ export async function POST(req: Request) {
       console.error("❌ Error handling deposit payment:", error);
       return NextResponse.json(
         { error: "Error processing deposit payment" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } else {

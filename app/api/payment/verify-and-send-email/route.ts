@@ -7,7 +7,7 @@ import { auth } from "../../../../src/lib/auth";
 import { sendMail } from "../../../../src/lib/mailer";
 import { prisma } from "../../../../src/lib/prisma";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_PROD_SECRET_KEY!, {
   apiVersion: "2025-05-28.basil",
 });
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (!sessionId) {
       return NextResponse.json(
         { error: "Session ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     if (stripeSession.payment_status !== "paid") {
       return NextResponse.json(
         { error: "Payment not completed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     ) {
       return NextResponse.json(
         { error: "Missing session metadata" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       if (existingReservation) {
         return NextResponse.json(
           { error: "Date already reserved" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -158,12 +158,12 @@ export async function POST(req: Request) {
                   <li style="margin-bottom: 10px;"><strong>Date de départ :</strong> ${format(
                     reservation.start,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Date de retour :</strong> ${format(
                     reservation.end,
                     "dd MMMM yyyy à HH:mm",
-                    { locale: fr }
+                    { locale: fr },
                   )}</li>
                   <li style="margin-bottom: 10px;"><strong>Acompte payé :</strong> 0,50 €</li>
                   <li style="margin-bottom: 10px;"><strong>Montant restant à payer sur place :</strong> ${remainingAmount} €</li>
@@ -226,7 +226,7 @@ export async function POST(req: Request) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
