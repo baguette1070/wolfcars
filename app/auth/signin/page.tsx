@@ -23,42 +23,8 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resendingEmail, setResendingEmail] = useState(false);
-  const [showResendButton, setShowResendButton] = useState(false);
   const router = useRouter();
   const toastId = useRef<string | number | undefined>(undefined);
-
-  const handleResendVerification = async () => {
-    if (!email) {
-      toast.error("Veuillez entrer votre email");
-      return;
-    }
-
-    setResendingEmail(true);
-    try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(
-          "Email de vérification renvoyé ! Consultez votre boîte de réception.",
-          { duration: 6000 },
-        );
-        setShowResendButton(false);
-      } else {
-        toast.error(data.error || "Erreur lors de l'envoi de l'email");
-      }
-    } catch (error) {
-      toast.error("Erreur lors de l'envoi de l'email");
-    } finally {
-      setResendingEmail(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
