@@ -9,24 +9,31 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export async function POST(req: Request) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const body = await req.json();
-  const { carId, startDate } = body as { carId: string; startDate: string };
-  const headersList = await headers();
-  const origin = headersList.get("origin") || "http://localhost:3000";
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!carId || !startDate) {
-    return NextResponse.json(
-      { error: "carId and startDate are required" },
-      { status: 400 }
-    );
-  }
-
   try {
+    console.log("🚀 Début création paiement");
+
+    const session = await auth.api.getSession({ headers: await headers() });
+    console.log("📝 Session:", session?.user?.id ? "OK" : "KO");
+
+    const body = await req.json();
+    const { carId, startDate } = body as { carId: string; startDate: string };
+    console.log("📅 Données:", { carId, startDate });
+
+    const headersList = await headers();
+    const origin = headersList.get("origin") || process.env.BETTER_AUTH_URL;
+    console.log("🌐 Origin:", origin);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!carId || !startDate) {
+      return NextResponse.json(
+        { error: "carId and startDate are required" },
+        { status: 400 },
+      );
+    }
+
     const car = await prisma.car.findUnique({
       where: { id: carId },
     });
@@ -50,7 +57,7 @@ export async function POST(req: Request) {
     if (existingReservation) {
       return NextResponse.json(
         { error: "Cette date est déjà réservée" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -64,7 +71,7 @@ export async function POST(req: Request) {
             product_data: {
               name: `Acompte location - ${car.name}`,
               description: `Acompte de 0,50€ pour la location du ${new Date(
-                startDate
+                startDate,
               ).toLocaleDateString("fr-FR")}`,
             },
             unit_amount: 50, // 0,50€ en centimes
@@ -92,7 +99,7 @@ export async function POST(req: Request) {
     console.error("Error creating deposit payment:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
