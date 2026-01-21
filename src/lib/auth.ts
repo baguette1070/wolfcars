@@ -18,7 +18,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: process.env.NODE_ENV === "production",
+
     async sendResetPassword(data) {
       await sendMail({
         to: `${data.user.email}`,
@@ -28,7 +28,6 @@ export const auth = betterAuth({
     },
 
     async sendVerificationEmail(data: VerificationEmailData) {
-      // En développement, afficher le lien dans la console
       if (process.env.NODE_ENV === "development") {
         console.log("\n" + "=".repeat(80));
         console.log("📧 EMAIL DE VÉRIFICATION");
@@ -68,10 +67,6 @@ export const auth = betterAuth({
         });
       } catch (error) {
         console.error("❌ Erreur lors de l'envoi de l'email:", error);
-        // En développement, on continue même si l'email échoue car le lien est dans la console
-        if (process.env.NODE_ENV !== "development") {
-          throw error;
-        }
       }
     },
   },
@@ -79,11 +74,6 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirectURI: "http://localhost:3000/api/auth/callback/google",
-    },
-    apple: {
-      clientId: process.env.APPLE_CLIENT_ID!,
-      clientSecret: process.env.APPLE_CLIENT_SECRET!,
     },
   },
   plugins: [nextCookies()],
